@@ -9,7 +9,7 @@ class Component(ApplicationSession):
 
     def testFunction(self):
         print 'Test fucntion called!'
-        return 'Holy Shit!'
+        return 'Holy Cow!'
 
     @inlineCallbacks
     def onJoin(self, details):
