@@ -42,6 +42,7 @@ class Component(ApplicationSession):
   
     def setupForwardingTable(chain):
         cmd = [IPTABLES, '--check', 'forward', '--jump', chain]
+        res = yield self.call('web.nick.logs', ['Setup Forwarding Table'])
         if subprocess.call(cmd) == 0:
             # Jump to chain already exists.
             cmd = [IPTABLES, '--flush', chain]
@@ -66,6 +67,7 @@ class Component(ApplicationSession):
             'action': 'DROP'
         }]
         """
+        res = yield self.call('web.nick.logs', ['getIptablesCommands'])
         base_cmd = [IPTABLES, '--append', chain]
 
         commands = list()
@@ -80,6 +82,7 @@ class Component(ApplicationSession):
         return commands
 
     def executeCommands(commands):
+        res = yield self.call('web.nick.logs', ['executeCommands'])
         for cmd in commands:
             subprocess.call(cmd)
 
