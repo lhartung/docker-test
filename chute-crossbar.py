@@ -76,13 +76,13 @@ class Component(ApplicationSession):
         for cmd in commands:
             subprocess.call(cmd)
 
-        @inlineCallbacks
-        def onJoin(self, details):
-            print("session attached")
+    @inlineCallbacks
+    def onJoin(self, details):
+        print("session attached")
 
-            yield self.register(self.testFunction, 'pd.nick.routerName.parentalControls')
+        yield self.register(self.testFunction, 'pd.nick.routerName.parentalControls')
 
-            print("procedure registered")
+        print("procedure registered")
 
 
 if __name__ == '__main__':
