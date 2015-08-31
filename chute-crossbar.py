@@ -17,50 +17,6 @@ iptables_options = {
     'action': '--jump {}'
 }
 
-def setupForwardingTable(chain):
-    cmd = [IPTABLES, '--check', 'forward', '--jump', chain]
-    if subprocess.call(cmd) == 0:
-        # Jump to chain already exists.
-        cmd = [IPTABLES, '--flush', chain]
-    else:
-        # Jump rule did not exist, so chain probably does not either.
-        cmd = [IPTABLES, '--new-chain', chain]
-        subprocess.call(cmd)
-
-        cmd = [IPTABLES, '--append', 'forward', '--jump', chain]
-        subprocess.call(cmd)
-
-def getIptablesCommands(chain, ruleDefs):
-    """
-    Generate iptables commands from rule definitions.
-    ruleDefs should be a list of rule definitions.  Each rule definition should
-    be a dictionary of iptables options, which will become one single iptables
-    rule.
-    Example (drop everything between midnight and 5am):
-    ruleDefs = [{
-        'timestart': '00:00',
-        'timestop': '05:00',
-        'action': 'DROP'
-    }]
-    """
-    base_cmd = [IPTABLES, '--append', chain]
-
-    commands = list()
-    for rule in ruleDefs:
-        cmd = list(base_cmd)
-        for key, value in rule.items():
-            if key in iptables_options:
-                option = iptables_options[key].format(value)
-                cmd.extend(option.split())
-        commands.append(cmd)
-
-    return commands
-
-def executeCommands(commands):
-    for cmd in commands:
-        subprocess.call(cmd)
-
-
 class Component(ApplicationSession):
 
     def testFunction(self):
@@ -71,9 +27,9 @@ class Component(ApplicationSession):
             'action': 'DROP'
         }] 
 
-        setupForwardingTable(CHAIN_NAME)
-        commands = getIptablesCommands(CHAIN_NAME, ruleDefs)
-        executeCommands(commands)
+        self.setupForwardingTable(CHAIN_NAME)
+        self.commands = getIptablesCommands(CHAIN_NAME, ruleDefs)
+        self.executeCommands(commands)
         return 'Dropping Packets!'
 
     @inlineCallbacks
@@ -83,6 +39,49 @@ class Component(ApplicationSession):
         yield self.register(self.testFunction, 'pd.nick.routerName.parentalControls')
 
         print("procedure registered")
+  
+    def setupForwardingTable(chain):
+        cmd = [IPTABLES, '--check', 'forward', '--jump', chain]
+        if subprocess.call(cmd) == 0:
+            # Jump to chain already exists.
+            cmd = [IPTABLES, '--flush', chain]
+        else:
+            # Jump rule did not exist, so chain probably does not either.
+            cmd = [IPTABLES, '--new-chain', chain]
+            subprocess.call(cmd)
+
+            cmd = [IPTABLES, '--append', 'forward', '--jump', chain]
+            subprocess.call(cmd)
+
+    def getIptablesCommands(chain, ruleDefs):
+        """
+        Generate iptables commands from rule definitions.
+        ruleDefs should be a list of rule definitions.  Each rule definition should
+        be a dictionary of iptables options, which will become one single iptables
+        rule.
+        Example (drop everything between midnight and 5am):
+        ruleDefs = [{
+            'timestart': '00:00',
+            'timestop': '05:00',
+            'action': 'DROP'
+        }]
+        """
+        base_cmd = [IPTABLES, '--append', chain]
+
+        commands = list()
+        for rule in ruleDefs:
+            cmd = list(base_cmd)
+            for key, value in rule.items():
+                if key in iptables_options:
+                    option = iptables_options[key].format(value)
+                    cmd.extend(option.split())
+            commands.append(cmd)
+
+        return commands
+
+    def executeCommands(commands):
+        for cmd in commands:
+            subprocess.call(cmd)
 
 
 if __name__ == '__main__':
