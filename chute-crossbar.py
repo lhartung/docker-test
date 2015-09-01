@@ -43,7 +43,7 @@ class Component(ApplicationSession):
     def setupForwardingTable(self, chain):
 
         print("setup")
-        cmd = [IPTABLES, '--check', 'forward', '--jump', chain]
+        cmd = [IPTABLES, '--check', 'FORWARD', '--jump', chain]
         if subprocess.call(cmd) == 0:
             # Jump to chain already exists.
             cmd = [IPTABLES, '--flush', chain]
@@ -52,7 +52,7 @@ class Component(ApplicationSession):
             cmd = [IPTABLES, '--new-chain', chain]
             subprocess.call(cmd)
 
-            cmd = [IPTABLES, '--append', 'forward', '--jump', chain]
+            cmd = [IPTABLES, '--append', 'FORWARD', '--jump', chain]
             subprocess.call(cmd)
 
     def getIptablesCommands(self, chain, ruleDefs):
