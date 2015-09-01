@@ -61,9 +61,11 @@ class Component(ApplicationSession):
     def testFunction(self):
         print 'Test fucntion called!'
         ruleDefs = [{
-            'timestart': '13:00',
-            'timestop': '05:00',
-            'action': 'DROP'
+            'time': {
+                'timestart': '13:00',
+                'timestop': '05:00'
+            },
+            'jump': 'DROP'
         }] 
 
         self.setupForwardingTable(CHAIN_NAME)
