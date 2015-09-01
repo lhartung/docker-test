@@ -28,7 +28,7 @@ class Component(ApplicationSession):
         }] 
 
         self.setupForwardingTable(CHAIN_NAME)
-        self.commands = getIptablesCommands(CHAIN_NAME, ruleDefs)
+        commands = self.getIptablesCommands(CHAIN_NAME, ruleDefs)
         self.executeCommands(commands)
         return 'Dropping Packets!'
 
@@ -40,9 +40,10 @@ class Component(ApplicationSession):
 
         print("procedure registered")
   
-    def setupForwardingTable(chain):
+    def setupForwardingTable(self, chain):
+
+        print("setup")
         cmd = [IPTABLES, '--check', 'forward', '--jump', chain]
-        res = yield self.call('web.nick.logs', ['Setup Forwarding Table'])
         if subprocess.call(cmd) == 0:
             # Jump to chain already exists.
             cmd = [IPTABLES, '--flush', chain]
@@ -54,7 +55,7 @@ class Component(ApplicationSession):
             cmd = [IPTABLES, '--append', 'forward', '--jump', chain]
             subprocess.call(cmd)
 
-    def getIptablesCommands(chain, ruleDefs):
+    def getIptablesCommands(self, chain, ruleDefs):
         """
         Generate iptables commands from rule definitions.
         ruleDefs should be a list of rule definitions.  Each rule definition should
@@ -67,7 +68,7 @@ class Component(ApplicationSession):
             'action': 'DROP'
         }]
         """
-        res = yield self.call('web.nick.logs', ['getIptablesCommands'])
+        print("iptables")
         base_cmd = [IPTABLES, '--append', chain]
 
         commands = list()
@@ -81,8 +82,8 @@ class Component(ApplicationSession):
 
         return commands
 
-    def executeCommands(commands):
-        res = yield self.call('web.nick.logs', ['executeCommands'])
+    def executeCommands(self, commands):
+        print("execute")
         for cmd in commands:
             subprocess.call(cmd)
 
