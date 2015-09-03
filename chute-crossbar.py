@@ -83,6 +83,7 @@ def setupForwardingTable(chain):
     if subprocess.call(cmd) == 0:
         # Jump to chain already exists.
         cmd = [IPTABLES, '--flush', chain]
+        subprocess.call(cmd)
     else:
         # Jump rule did not exist, so chain probably does not either.
         cmd = [IPTABLES, '--new-chain', chain]
