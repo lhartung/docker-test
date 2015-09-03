@@ -58,7 +58,11 @@ def parse_iptables(options, insideMatch=False):
 
 class Component(ApplicationSession):
 
-    def testFunction(self, rules):
+    def applyRules(self, rules):
+        config = open('/.iprule.conf', 'w')
+        config.write(rules)
+        config.close()
+
         rules = json.loads(rules)
 
         self.setupForwardingTable(CHAIN_NAME)
@@ -66,11 +70,22 @@ class Component(ApplicationSession):
         self.executeCommands(commands)
         return 'Dropping Packets!'
 
+    def reportRules(self):
+        try:
+            config = open('/.iprule.conf', 'r')
+            ret = config.read()
+            config.close()
+        except IOError as e:
+            ret = None
+
+        return ret
+
     @inlineCallbacks
     def onJoin(self, details):
         print("session attached")
 
-        yield self.register(self.testFunction, 'pd.nick.routerName.parentalControls')
+        yield self.register(self.applyRules, 'pd.nick.routerName.parentalControls.apply')
+        yield self.register(self.reportRules, 'pd.nick.routerName.parentalControls.report')
 
         print("procedure registered")
   
