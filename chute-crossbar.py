@@ -3,7 +3,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from autobahn.wamp.types import RegisterOptions, PublishOptions
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
-import subprocess
+import subprocess, json
 
 IPTABLES = "iptables"
 CHAIN_NAME = "PARENTAL_FORWARD"
@@ -22,7 +22,7 @@ def parse_iptables(options, insideMatch=False):
         'time': {
             'timestart': '00:00',
             'timestop': '05:00'
-        },  # Becomes "--match time --timestart 20:00 --timestop 04:00"
+        },  # Becomes "--match time --timestart 00:00 --timestop 05:00"
         'jump': 'DROP'  # Becomes "--jump DROP"
     }
 
@@ -58,18 +58,11 @@ def parse_iptables(options, insideMatch=False):
 
 class Component(ApplicationSession):
 
-    def testFunction(self):
-        print 'Test fucntion called!'
-        ruleDefs = [{
-            'time': {
-                'timestart': '13:00',
-                'timestop': '05:00'
-            },
-            'jump': 'DROP'
-        }] 
+    def testFunction(self, rules):
+        rules = json.loads(rules)
 
         self.setupForwardingTable(CHAIN_NAME)
-        commands = self.getIptablesCommands(CHAIN_NAME, ruleDefs)
+        commands = self.getIptablesCommands(CHAIN_NAME, rules)
         self.executeCommands(commands)
         return 'Dropping Packets!'
 
@@ -83,7 +76,6 @@ class Component(ApplicationSession):
   
     def setupForwardingTable(self, chain):
 
-        print("setup")
         cmd = [IPTABLES, '--check', 'FORWARD', '--jump', chain]
         if subprocess.call(cmd) == 0:
             # Jump to chain already exists.
@@ -111,7 +103,6 @@ class Component(ApplicationSession):
             'jump': 'DROP'
         }]
         """
-        print("iptables")
         base_cmd = [IPTABLES, '--append', chain]
 
         commands = list()
@@ -123,7 +114,6 @@ class Component(ApplicationSession):
         return commands
 
     def executeCommands(self, commands):
-        print("execute")
         for cmd in commands:
             subprocess.call(cmd)
 
