@@ -55,85 +55,89 @@ def parse_iptables(options, insideMatch=False):
     
     return parts
 
+def applyRules(rules):
+    config = open('/.iprule.conf', 'w')
+    config.write(rules)
+    config.close()
+
+    rules = json.loads(rules)
+
+    setupForwardingTable(CHAIN_NAME)
+    commands = getIptablesCommands(CHAIN_NAME, rules)
+    executeCommands(commands)
+    return 'Dropping Packets!'
+
+def reportRules():
+    try:
+        config = open('/.iprule.conf', 'r')
+        ret = config.read()
+        config.close()
+    except IOError as e:
+        ret = None
+
+    return ret
+
+def setupForwardingTable(chain):
+
+    cmd = [IPTABLES, '--check', 'FORWARD', '--jump', chain]
+    if subprocess.call(cmd) == 0:
+        # Jump to chain already exists.
+        cmd = [IPTABLES, '--flush', chain]
+    else:
+        # Jump rule did not exist, so chain probably does not either.
+        cmd = [IPTABLES, '--new-chain', chain]
+        subprocess.call(cmd)
+
+        cmd = [IPTABLES, '--append', 'FORWARD', '--jump', chain]
+        subprocess.call(cmd)
+
+def getIptablesCommands(chain, ruleDefs):
+    """
+    Generate iptables commands from rule definitions.
+    ruleDefs should be a list of rule definitions.  Each rule definition should
+    be a dictionary of iptables options, which will become one single iptables
+    rule.
+    Example (drop everything between midnight and 5am):
+    ruleDefs = [{
+        'time': {
+            'timestart': '00:00',
+            'timestop': '05:00'
+        },
+        'jump': 'DROP'
+    }]
+    """
+    base_cmd = [IPTABLES, '--append', chain]
+
+    commands = list()
+    for rule in ruleDefs:
+        cmd = list(base_cmd)
+        cmd.extend(parse_iptables(rule))
+        commands.append(cmd)
+
+    return commands
+
+def executeCommands(commands):
+    for cmd in commands:
+        subprocess.call(cmd)
+
 
 class Component(ApplicationSession):
-
-    def applyRules(self, rules):
-        config = open('/.iprule.conf', 'w')
-        config.write(rules)
-        config.close()
-
-        rules = json.loads(rules)
-
-        self.setupForwardingTable(CHAIN_NAME)
-        commands = self.getIptablesCommands(CHAIN_NAME, rules)
-        self.executeCommands(commands)
-        return 'Dropping Packets!'
-
-    def reportRules(self):
-        try:
-            config = open('/.iprule.conf', 'r')
-            ret = config.read()
-            config.close()
-        except IOError as e:
-            ret = None
-
-        return ret
 
     @inlineCallbacks
     def onJoin(self, details):
         print("session attached")
 
-        yield self.register(self.applyRules, 'pd.nick.routerName.parentalControls.apply')
-        yield self.register(self.reportRules, 'pd.nick.routerName.parentalControls.report')
+        yield self.register(applyRules, 'pd.nick.routerName.parentalControls.apply')
+        yield self.register(reportRules, 'pd.nick.routerName.parentalControls.report')
 
         print("procedure registered")
   
-    def setupForwardingTable(self, chain):
-
-        cmd = [IPTABLES, '--check', 'FORWARD', '--jump', chain]
-        if subprocess.call(cmd) == 0:
-            # Jump to chain already exists.
-            cmd = [IPTABLES, '--flush', chain]
-        else:
-            # Jump rule did not exist, so chain probably does not either.
-            cmd = [IPTABLES, '--new-chain', chain]
-            subprocess.call(cmd)
-
-            cmd = [IPTABLES, '--append', 'FORWARD', '--jump', chain]
-            subprocess.call(cmd)
-
-    def getIptablesCommands(self, chain, ruleDefs):
-        """
-        Generate iptables commands from rule definitions.
-        ruleDefs should be a list of rule definitions.  Each rule definition should
-        be a dictionary of iptables options, which will become one single iptables
-        rule.
-        Example (drop everything between midnight and 5am):
-        ruleDefs = [{
-            'time': {
-                'timestart': '00:00',
-                'timestop': '05:00'
-            },
-            'jump': 'DROP'
-        }]
-        """
-        base_cmd = [IPTABLES, '--append', chain]
-
-        commands = list()
-        for rule in ruleDefs:
-            cmd = list(base_cmd)
-            cmd.extend(parse_iptables(rule))
-            commands.append(cmd)
-
-        return commands
-
-    def executeCommands(self, commands):
-        for cmd in commands:
-            subprocess.call(cmd)
-
 
 if __name__ == '__main__':
+    rules = reportRules()
+    if(rules):
+        applyRules(rules)
+
     runner = ApplicationRunner(
         "ws://paradrop.io:9080/ws",
         u"crossbardemo",
